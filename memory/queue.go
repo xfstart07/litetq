@@ -7,7 +7,7 @@ import (
 	"github.com/xfstart07/litetq"
 )
 
-var _ litetq.QueueClient = new(queue)
+var _ litetq.QueueClient = (*queue)(nil)
 
 type queue struct {
 	maxRetryCount int
