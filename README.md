@@ -2,9 +2,9 @@
 
 可以将任务放在 kv 存储，内存等存储方式的任务队列。
 
-图:
+设计图:
 
-![](./litetq.excalidraw)
+![](./images/design.png)
 
 ## 内存版
 
