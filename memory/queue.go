@@ -5,6 +5,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xfstart07/litetq"
+	"github.com/xfstart07/litetq/pool"
 )
 
 var _ litetq.QueueClient = (*queue)(nil)
@@ -14,6 +15,7 @@ type queue struct {
 	msgch         chan *litetq.Message
 	handler       map[litetq.MessageType]func(*litetq.Message) error
 	done          chan struct{}
+	pool          pool.Pool
 }
 
 // 内存队列
@@ -27,8 +29,9 @@ func New(concurrent int, maxRetryCount int) *queue {
 	}
 	q := &queue{
 		maxRetryCount: maxRetryCount,
-		msgch:         make(chan *litetq.Message, concurrent),
+		msgch:         make(chan *litetq.Message),
 		handler:       make(map[litetq.MessageType]func(*litetq.Message) error),
+		pool:          pool.New(concurrent),
 		done:          make(chan struct{}),
 	}
 
@@ -41,9 +44,13 @@ func (q *queue) run() {
 	for {
 		select {
 		case msg := <-q.msgch:
-			q.dispatch(msg)
+			// 放到 goroutine 池中执行
+			q.pool.Run(func() {
+				q.dispatch(msg)
+			})
 		case <-q.done:
 			log.Info().Msg("exit queue!")
+			q.pool.Stop()
 			return
 		}
 	}
