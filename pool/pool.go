@@ -1,26 +1,25 @@
 package pool
 
+import "fmt"
+
 var defaultpool = New(32)
 
 // 协程池
 type Pool interface {
 	Go(func())
-	Stop()
 }
 
 var _ Pool = (*pool)(nil)
 
 type pool struct {
-	queue  chan func()   // 任务队列
-	worker chan struct{} // 带缓存的通道，限制协程创建数量
-	stop   chan struct{}
+	queue    chan func()   // 任务队列
+	workPool chan struct{} // 带缓存的通道，限制协程创建数量
 }
 
 func New(size int) *pool {
 	return &pool{
-		queue:  make(chan func(), 128),
-		worker: make(chan struct{}, size),
-		stop:   make(chan struct{}),
+		queue:    make(chan func(), 128),
+		workPool: make(chan struct{}, size),
 	}
 }
 
@@ -35,30 +34,27 @@ func (p *pool) Go(task func()) {
 	}
 
 	select {
-	case p.worker <- struct{}{}:
-		go p.work()
+	case p.workPool <- struct{}{}:
+		go p.worker()
 	default:
 		// 不需要创建新的 goroutine
+		fmt.Println("worker return")
 	}
 
 	return
 }
 
-func (p *pool) work() {
+func (p *pool) worker() {
 	defer func() {
-		// 工作者退出工作
-		<-p.worker
+		<-p.workPool
 	}()
 	for {
 		select {
 		case task := <-p.queue: // 从队列中获取任务
 			task()
-		case <-p.stop: // 退出工作
+		default:
+			// No task return
 			return
 		}
 	}
-}
-
-func (p *pool) Stop() {
-	p.stop <- struct{}{}
 }
