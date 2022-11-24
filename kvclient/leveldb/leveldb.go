@@ -9,7 +9,7 @@ import (
 	"github.com/xfstart07/litetq/kvclient"
 )
 
-var _ kvclient.KVClient = new(db)
+var _ kvclient.KVClient = (*db)(nil)
 
 type db struct {
 	client *leveldb.DB

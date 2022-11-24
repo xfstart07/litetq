@@ -9,7 +9,7 @@ import (
 	"github.com/xfstart07/litetq/pool"
 )
 
-var _ litetq.QueueClient = new(queue)
+var _ litetq.QueueClient = (*queue)(nil)
 
 type queue struct {
 	maxRetryCount int
