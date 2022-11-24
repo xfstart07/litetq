@@ -25,7 +25,7 @@ func taskBFn(msg *litetq.Message) error {
 }
 
 func BenchmarkNew(b *testing.B) {
-	queue := New(100, 30)
+	queue := New(30)
 	queue.Subscribe(taskA, taskAFn)
 	queue.Subscribe(taskB, taskBFn)
 

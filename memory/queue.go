@@ -15,23 +15,13 @@ type queue struct {
 	msgch         chan *litetq.Message
 	handler       map[litetq.MessageType]func(*litetq.Message) error
 	done          chan struct{}
-	pool          pool.Pool
 }
 
-// 内存队列
-// 队列容量 10-1000 范围
-func New(concurrent int, maxRetryCount int) *queue {
-	if concurrent < 10 {
-		concurrent = 10
-	}
-	if concurrent > 1000 {
-		concurrent = 1000
-	}
+func New(maxRetryCount int) *queue {
 	q := &queue{
 		maxRetryCount: maxRetryCount,
 		msgch:         make(chan *litetq.Message),
 		handler:       make(map[litetq.MessageType]func(*litetq.Message) error),
-		pool:          pool.New(concurrent),
 		done:          make(chan struct{}),
 	}
 
@@ -44,13 +34,12 @@ func (q *queue) run() {
 	for {
 		select {
 		case msg := <-q.msgch:
-			// 放到 goroutine 池中执行
-			q.pool.Run(func() {
+			// 放到运行池中执行
+			pool.Go(func() {
 				q.dispatch(msg)
 			})
 		case <-q.done:
 			log.Info().Msg("exit queue!")
-			q.pool.Stop()
 			return
 		}
 	}
@@ -101,8 +90,10 @@ func (q *queue) Publish(m *litetq.Message, waitSeconds int) error {
 		go time.AfterFunc(time.Duration(waitSeconds)*time.Second, func() {
 			q.msgch <- m
 		})
+	} else {
+		q.msgch <- m
 	}
-	q.msgch <- m
+
 	return nil
 }
 

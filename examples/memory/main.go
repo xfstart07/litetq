@@ -19,7 +19,7 @@ func main() {
 		log.Fatal().Err(http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	queue = memory.New(100, 10)
+	queue = memory.New(10)
 
 	queue.Subscribe(reportAlert, reportAlertFn)
 	queue.Subscribe(sendMail, sendMailFn)

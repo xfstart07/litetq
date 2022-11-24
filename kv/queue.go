@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xfstart07/litetq"
 	"github.com/xfstart07/litetq/kvclient"
+	"github.com/xfstart07/litetq/pool"
 )
 
 var _ litetq.QueueClient = new(queue)
@@ -36,7 +37,10 @@ func (q *queue) run() {
 	for {
 		select {
 		case msg := <-q.msgch:
-			q.dispatch(msg)
+			// 放到运行池中执行
+			pool.Go(func() {
+				q.dispatch(msg)
+			})
 		case <-q.done:
 			log.Info().Msg("exit queue!")
 			return
@@ -119,8 +123,10 @@ func (q *queue) publish(m *litetq.Message, waitSeconds int) error {
 		go time.AfterFunc(time.Duration(waitSeconds)*time.Second, func() {
 			q.msgch <- m
 		})
+	} else {
+		q.msgch <- m
 	}
-	q.msgch <- m
+
 	return nil
 }
 
