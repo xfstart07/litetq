@@ -1,7 +1,5 @@
 package pool
 
-import "fmt"
-
 var defaultpool = New(32)
 
 // 协程池
@@ -36,9 +34,9 @@ func (p *pool) Go(task func()) {
 	select {
 	case p.workPool <- struct{}{}:
 		go p.worker()
+		// fmt.Println("create worker")
 	default:
 		// 不需要创建新的 goroutine
-		fmt.Println("worker return")
 	}
 
 	return
